@@ -64,7 +64,7 @@
                   resetValues();
                   changeSelect();
                 "
-                label="Select Class index"
+                label="Select a predicted Class"
               ></v-select>
             </v-col>
             <v-col cols="4">
@@ -115,6 +115,8 @@
 <script>
 import { Plotly } from "vue-plotly";
 import axios from "axios";
+
+
 export default {
   name: "ssps",
   components: {
@@ -131,7 +133,7 @@ export default {
     data: [
       {
         z: [],
-        type: "contour",
+        type: "heatmap",
         autorange: "reversed",
         showscale: false,
       },
@@ -139,15 +141,23 @@ export default {
     data1: [
       {
         z: [],
-        type: "contour",
+        type: "heatmap",
         autorange: "reversed",
+        colorbar: {
+        title: "Predicitons",
+        tick0: 0,
+        dtick: 2,
+        tickvals: [0, 1, 2, 3,4,5,6],
+        ticktext:["background", "cap", "ring", "stipe", "gills", "volva", "mycelium"],  
+
+        },
         showscale: true,
       },
     ],
     data2: [
       {
         z: [],
-        type: "contour",
+        type: "heatmap",
         autorange: "reversed",
       },
     ],
@@ -157,15 +167,6 @@ export default {
       showticklabels: true,
       tickmode: "array",
       tickvals: [0, 1, 2, 3, 4, 5],
-      ticktext: [
-        "background",
-        "cap",
-        "ring",
-        "stipe",
-        "gills",
-        "volva",
-        "mycelium",
-      ],
       width: 450,
       height: 450,
       margin: {
