@@ -1,86 +1,114 @@
 <template>
   <v-container>
-    <v-sheet outlined color="primary" rounded>
-      <v-card outlined style="min-height: 93vh" elevation="0">
-        <v-container>
-          <v-file-input
-            accept="image/png, image/jpeg, image/bmp"
-            placeholder="Pick an avatar"
-            prepend-icon=""
-            append-icon="mdi-camera"
-            label="Image"
-            outlined
-            v-model="imagge"
-            @change="postForm()"
-          ></v-file-input>
-          <v-row align-content="center">
-            <v-col cols="6">
-              <v-container>
-                <v-img v-if="plotimg" :src="url"   max-height="500" max-width="500"></v-img>
-              </v-container>
-            </v-col>
-            <v-col cols="6">
-              <plotly
-                v-if="plot"
-                :data="data1"
-                :layout="layout_2"
-                :displayModeBar="false"
-                ref="graph"
-                id="graph"
-                @selected="printval($event)"                
-              />
-            </v-col>
-          </v-row>
-          <v-row>
-            <v-col cols="6">
-              <v-container>
-                <v-select
-                  v-if="plot"
-                  v-model="selected2"
-                  :items="items2"
-                  class="selectLayer"
-                  outlined
-                  prepend-inner-icon="mdi-layers"
-                  hide-spin-buttons
-                  dense
-                  @change="changeSelect()"
-                >
-                </v-select>
-                <plotly
-                  v-if="plot2"
-                  :data="data2"
-                  :layout="layout_3"
-                  :displayModeBar="false"
-                />
-              </v-container>
-            </v-col>
-          </v-row>
-          <v-row>
-            <v-col class="d-flex" sm="6"> </v-col>
+    <div v-show="!plot">
+      <input
+        ref="uploader"
+        class="d-none"
+        type="file"
+        accept="image/*"
+        @change="postForm"
+      />
+      <div>
+        <h2 style="margin-top: 40vh; text-align: center">
+          Easily analyze Semantic Segmentation
+        </h2>
+        <v-btn
+          color="primary"
+          style="margin: 0 auto; display: block; margin-top: 50px"
+          x-large
+          @click="getFile"
+        >
+          <v-icon left dark> mdi-plus </v-icon> Upload image
+        </v-btn>
+      </div>
+    </div>
+    <div outlined v-show="plot" class="mt-8" color="primary" rounded>
+      <v-row align-content="center">
+        <v-col cols="6">
+          <v-container>
+            <p class="text">Your Uploaded Image </p>
+            <v-img 
+              v-if="plotimg"
+              :src="url"
+              class="input"
+            ></v-img>
+          </v-container>
+        </v-col>
+        <v-col cols="6">
+          <span
+            style="width: 70% margin: 0 auto; display: block; font-size: 16px; margin-top: 120px"
+          >
+            SSPS: A Web-Based Tool for exploring interpretation of semantic segmentation.
+          </span>
 
-            <v-col class="d-flex" sm="6">
-              <v-container>
-                <v-row>
-                  <v-col>
-                    <v-select
-                      v-if="plot"
-                      v-model="selected"
-                      :items="itemss"
-                      @change="
-                        resetValues();
-                        changeSelect();
-                      "
-                      label="Select type"
-                    ></v-select>
-                  </v-col>
-                  <v-col> </v-col>
-                </v-row>
-              </v-container>
+          <v-btn
+            color="primary"
+            style="margin: 0 auto; display: block; margin-top: 50px; margin-left: 150px"
+            x-large
+            @click="getFile"
+          >
+            <v-icon left dark> mdi-plus </v-icon> Upload a new image
+          </v-btn>
+        </v-col>
+        <v-col cols="6">
+          <v-row>
+            <v-col cols="8">
+              <v-select
+                class="dropindx"
+                v-if="plot"
+                v-model="selected"
+                :items="itemss"
+                outlined
+                dense
+                @change="
+                  resetValues();
+                  changeSelect();
+                "
+                label="Select Class index"
+              ></v-select>
+            </v-col>
+            <v-col cols="4">
+              <v-select
+                v-if="plot"
+                v-model="selected2"
+                :items="items2"
+                class="selectLayer"
+                outlined
+                prepend-inner-icon="mdi-layers"
+                hide-spin-buttons
+                dense
+                @change="changeSelect()"
+                label="Select Final layer"
+              >
+              </v-select>
             </v-col>
           </v-row>
-        </v-container>
-      </v-card>
-    </v-sheet>
+          <plotly
+            v-if="plot"
+            :data="data1"
+            :layout="layout_2"
+            :displayModeBar="false"
+            ref="graph"
+            id="graph"
+            @selected="printval($event)"
+          />
+        </v-col>
+        <v-col style="margin-top: 68px" cols="6">
+          <plotly
+            v-if="plot2"
+            :data="data2"
+            :layout="layout_3"
+            :displayModeBar="false"
+          />
+          <v-skeleton-loader
+            class="loader"
+            type="image"
+            v-else
+          ></v-skeleton-loader>
+        </v-col>
+      </v-row>
+      <v-row> </v-row>
+    </div>
   </v-container>
 </template>
 
@@ -93,9 +121,9 @@ export default {
     Plotly,
   },
   data: () => ({
-    plot: true,
-    plot2: true,
-    plotimg: true,
+    plot: false,
+    plot2: false,
+    plotimg: false,
     items: ["background", "cap", "ring", "stipe", "gills", "volva", "mycelium"],
     items2: [],
     selected: 0,
@@ -123,30 +151,13 @@ export default {
         autorange: "reversed",
       },
     ],
-    layout: {
-      title: "Ground Truth",
-      yaxis: { autorange: "reversed" },
-      width: 500,
-      height: 500,
-      margin: {
-        l: 50,
-        r: 50,
-        b: 100,
-        t: 100,
-        pad: 2, 
-        
-          },
-      paper_bgcolor: '#c7c7c7',
-
-    },
     layout_2: {
-      title: "Predicted Mask",
+      title: "Predicted mask",
       yaxis: { autorange: "reversed" },
       showticklabels: true,
-      tickmode: 'array',
-      tickvals: [0,1, 2, 3,4,5],
+      tickmode: "array",
+      tickvals: [0, 1, 2, 3, 4, 5],
       ticktext: [
-        
         "background",
         "cap",
         "ring",
@@ -155,33 +166,33 @@ export default {
         "volva",
         "mycelium",
       ],
-      width: 500,
-      height: 500,
+      width: 450,
+      height: 450,
       margin: {
         l: 50,
         r: 50,
-        b: 100,
-        t: 100,
-        pad: 2, 
-        
-          },
-      paper_bgcolor: '#c7c7c7',
+        b: 50,
+        t: 50,
+        pad: 2,
+      },
+      paper_bgcolor: "rgba(27, 27, 50, 0.03)",
+      borderRadius: '20px',
       dragmode: "select",
     },
     layout_3: {
-      title: "Grad Cam",
+      title: "Segmentation-grad-cam",
       yaxis: { autorange: "reversed" },
-      width: 500,
-      height: 500,
+      width: 450,
+      height: 450,
       margin: {
         l: 50,
         r: 50,
-        b: 100,
-        t: 100,
+        b: 50,
+        t: 50,
         pad: 2,
-        
-          },
-      paper_bgcolor: '#c7c7c7',
+      },
+      paper_bgcolor: "rgba(27, 27, 50, 0.03)",
+      borderRadius: '20px',
     },
     imagge: null,
     url: null,
@@ -208,27 +219,33 @@ export default {
 
   mounted() {
     this.$refs.graph.$on("click", (d) => {
-      this.resetValues()
-      this.printval(d)
-
+      this.resetValues();
+      this.printval(d);
     });
   },
 
   methods: {
-    postForm() {
-      console.log("hhere", this.imagge);
-      this.url = URL.createObjectURL(this.imagge);
+    postForm(e) {
+      console.log("hhere", e.target.files[0]);
+      this.imagge = e.target.files[0];
+      this.url = URL.createObjectURL(e.target.files[0]);
       this.plotimg = true;
       let formData = new FormData();
-      formData.append("image", this.imagge);
+      this.plot = true;
+      formData.append("image", e.target.files[0]);
       axios
         .post("http://localhost:1025/form-example", formData)
         .then((response) => {
-          this.data[0].z = response.data;
-          this.data1[0].z = response.data;
+          this.data[0].z = response.data.data;
+          this.data1[0].z = response.data.data;
+          this.items= response.data.elements
           this.changeSelect();
           this.getLayers();
           this.plot = true;
+          this.$refs.graph.$on("click", (d) => {
+          this.resetValues();
+          this.printval(d);
+    });
         });
     },
     getLayers() {
@@ -266,31 +283,77 @@ export default {
     resetValues() {
       this.arrayselected = { x: [], y: [] };
     },
+    getFile() {
+      this.$refs.uploader.click();
+    },
     printval(e) {
       if (e.range) {
-      this.arrayselected = e.range;
-      this.changeSelect();
-      console.log(e);
-      console.log(e.points);
-      }
-      else {
-      console.log('e', e.event.x);
-      this.arrayselected.x[0] = e.points[0].x;
-      this.arrayselected.y[0]= e.points[0].y;
-      this.changeSelect();
-      console.log(e);
-      console.log(e.points);
+        this.arrayselected = e.range;
+        this.changeSelect();
+        console.log(e);
+        console.log(e.points);
+      } else {
+        console.log("e", e.event.x);
+        this.arrayselected.x[0] = e.points[0].x;
+        this.arrayselected.y[0] = e.points[0].y;
+        this.changeSelect();
+        console.log(e);
+        console.log(e.points);
       }
     },
   },
+  watch: {
+
+  }
 };
 </script>
 
 <style scoped>
 .selectLayer {
-  position: absolute;
-  width: min-content;
-  right: 30px;
-  z-index: 3000;
+  width: 187px;
+  right: 335px;
+  border-radius: 4px;
+  background: #fffdfd;
+  flex: none;
+  order: 0;
+  flex-grow: 1;
+  margin: 0px 0px;
+  
+  }
+  
+.input{
+width:calc(.5*100%);
+height:calc(.5*100%);
+object-fit: contain;
+border: 2px  #726e6e;
+border-radius: 5px;
 }
+v-img {
+ max-width: 100%;
+ max-height: 100%;
+  object-fit: contain;
+
+}
+.loader{
+width: 450px;
+height: 900px;
+}
+.dropindx{
+  width: 187px;
+  background: #fffdfd; 
+  border-radius: 4px;
+  flex: none;
+  order: 0;
+  flex-grow: 1;
+  margin: 0px 0px;
+
+}
+.text{
+font-family: Roboto;
+font-style: normal;
+font-weight: 400;
+font-size: 16px;
+line-height: 24px;
+}
+
 </style>
