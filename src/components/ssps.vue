@@ -1,5 +1,5 @@
 <template>
-  <v-container>
+  <v-container>  <!-- vue components structure for the main page -->
     <div v-show="!plot">
       <input
         ref="uploader"
@@ -129,16 +129,8 @@ export default {
     items: ["background", "cap", "ring", "stipe", "gills", "volva", "mycelium"],
     items2: [],
     selected: 0,
-    selected2: "final_conv",
-    data: [
-      {
-        z: [],
-        type: "heatmap",
-        autorange: "reversed",
-        showscale: false,
-      },
-    ],
-    data1: [
+    selected2: "final_conv", // default value 
+    data1: [ //predicted mask 
       {
         z: [],
         type: "heatmap",
@@ -147,20 +139,20 @@ export default {
         title: "Predicitons",
         tick0: 0,
         dtick: 2,
-        tickvals: [0, 1, 2, 3,4,5,6],
+        tickvals: [0, 1, 2, 3,4,5,6], 
         ticktext:["background", "cap", "ring", "stipe", "gills", "volva", "mycelium"],  
 
         },
         showscale: true,
       },
     ],
-    data2: [
+    data2: [ // seg-grad-cam
       {
         z: [],
         type: "heatmap",
         autorange: "reversed",
       },
-    ],
+    ], // layout of the heatmaps
     layout_2: {
       title: "Predicted mask",
       yaxis: { autorange: "reversed" },
@@ -237,7 +229,7 @@ export default {
       axios
         .post("http://localhost:1025/form-example", formData)
         .then((response) => {
-          this.data[0].z = response.data.data;
+          this.data1[0].z = response.data.data;
           this.data1[0].z = response.data.data;
           this.items= response.data.elements
           this.changeSelect();
@@ -248,7 +240,7 @@ export default {
           this.printval(d);
     });
         });
-    },
+    }, // for chaning the layer 
     getLayers() {
       console.log("hhere", this.imagge);
       this.url = URL.createObjectURL(this.imagge);
@@ -257,7 +249,7 @@ export default {
       axios.get("http://localhost:1025/form-example").then((response) => {
         this.items2 = response.data;
       });
-    },
+    }, // for chaning selection
     changeSelect() {
       this.plot2 = false;
       let self = this;
@@ -281,7 +273,7 @@ export default {
           console.log(res);
         });
     },
-    resetValues() {
+    resetValues() { //clear the values of x and y each time
       this.arrayselected = { x: [], y: [] };
     },
     getFile() {
@@ -308,7 +300,7 @@ export default {
   }
 };
 </script>
-
+//styling
 <style scoped>
 .selectLayer {
   width: 187px;
