@@ -10,7 +10,7 @@
       />
       <div>
         <h2 style="margin-top: 40vh; text-align: center">
-          Easily analyze Semantic Segmentation
+          Explore Semantic Segmentation
         </h2>
         <v-btn
           color="primary"
@@ -24,80 +24,92 @@
     </div>
     <div outlined v-show="plot" class="mt-8" color="primary" rounded>
       <v-row align-content="center">
-        <v-col cols="6">
-          <v-container>
-            <p class="text">Your Uploaded Image </p>
+        <v-col cols="1">
+          <v-btn
+              :loading="upLoading"
+              :disabled="upLoading"
+              color="primary"
+              class="ma-2 white--text"
+              fab
+              @click="getFile"
+              aria-label="Upload new Image"
+            >
+            <v-icon dark>
+              mdi-cloud-upload
+            </v-icon>
+          </v-btn>
+        </v-col>
+
+        <v-col cols="2">
+          <v-select
+            class="dropindx"
+            v-if="plot"
+            v-model="selected"
+            :items="classItemsFn"
+            outlined
+            dense
+            @change="
+              resetValues();
+              changeSelect();
+            "
+            label="Select Class"
+          ></v-select>
+        </v-col>
+
+        <v-col cols="2">
+          <v-select
+            v-if="plot"
+            v-model="selected2"
+            :items="layerItems"
+            class="selectLayer"
+            outlined
+            prepend-inner-icon="mdi-layers"
+            hide-spin-buttons
+            dense
+            @change="changeSelect()"
+            label="Select layer"
+          >
+          </v-select>
+        </v-col>
+      </v-row>
+      <v-row align-content="center" align="center">
+        <v-col cols="4" style="vertical-align:middle;">
+          <v-container style="text-align:center; padding-left:30%; padding-right:8%; padding-bottom: 10%;">
+            <p class="text">Input Image</p>
             <v-img 
-              v-if="plotimg"
+              ref="inputImg"
+              v-if="url"
               :src="url"
-              class="input"
+              class="inputImg"
             ></v-img>
           </v-container>
         </v-col>
-        <v-col cols="6">
-          <span
-            style="width: 70% margin: 0 auto; display: block; font-size: 16px; margin-top: 120px"
-          >
-            SSPS: A Web-Based Tool for exploring interpretation of semantic segmentation.
-          </span>
 
-          <v-btn
-            color="primary"
-            style="margin: 0 auto; display: block; margin-top: 50px; margin-left: 150px"
-            x-large
-            @click="getFile"
-          >
-            <v-icon left dark> mdi-plus </v-icon> Upload a new image
-          </v-btn>
-        </v-col>
-        <v-col cols="6">
-          <v-row>
-            <v-col cols="8">
-              <v-select
-                class="dropindx"
-                v-if="plot"
-                v-model="selected"
-                :items="itemss"
-                outlined
-                dense
-                @change="
-                  resetValues();
-                  changeSelect();
-                "
-                label="Select a predicted Class"
-              ></v-select>
-            </v-col>
-            <v-col cols="4">
-              <v-select
-                v-if="plot"
-                v-model="selected2"
-                :items="items2"
-                class="selectLayer"
-                outlined
-                prepend-inner-icon="mdi-layers"
-                hide-spin-buttons
-                dense
-                @change="changeSelect()"
-                label="Select Final layer"
-              >
-              </v-select>
-            </v-col>
-          </v-row>
+        <!-- <v-col cols="4">
           <plotly
             v-if="plot"
-            :data="data1"
-            :layout="layout_2"
+            :data="data_input"
+            :layout="layout_input"
+            :displayModeBar="false"
+          />
+        </v-col> -->
+        
+        <v-col cols="4">
+          <plotly
+            v-if="plot"
+            :data="data_mask"
+            :layout="layout_mask"
             :displayModeBar="false"
             ref="graph"
             id="graph"
             @selected="printval($event)"
           />
         </v-col>
-        <v-col style="margin-top: 68px" cols="6">
+        <v-col cols="4" style="padding-right:40px;">
           <plotly
-            v-if="plot2"
-            :data="data2"
-            :layout="layout_3"
+            v-if="plot_explanation"
+            :data="data_explanation"
+            :layout="layout_explanation"
             :displayModeBar="false"
           />
           <v-skeleton-loader
@@ -123,85 +135,164 @@ export default {
     Plotly,
   },
   data: () => ({
+    upLoading: false,
     plot: false,
-    plot2: false,
-    plotimg: false,
-    items: ["background", "cap", "ring", "stipe", "gills", "volva", "mycelium"],
-    items2: [],
+    plot_explanation: false,
+    classItems: ["background", "cap", "ring", "stipe", "gills", "volva", "mycelium"],
+    discrete_colorscale: ['rgb(166,206,227)','rgb(31,120,180)','rgb(178,223,138)','rgb(51,160,44)','rgb(251,154,153)','rgb(227,26,28)','rgb(253,191,111)','rgb(255,127,0)','rgb(202,178,214)','rgb(106,61,154)','rgb(255,255,153)','rgb(177,89,40)'],
+    layerItems: [],
     selected: 0,
     selected2: "final_conv", // default value 
-    data1: [ //predicted mask 
+    data_input: [{
+        z: [],
+        type: "heatmap",
+        // type: "contour",
+        autorange: "reversed",
+        colorbar: {
+          title: "Class",
+          // font: {
+          //   family: 'Roboto, normal',
+          //   size: 16,
+          //   color: '#7f7f7f'
+          // },
+          tickvals: [0, 1, 2, 3, 4, 5, 6], 
+          ticktext: ["background", "cap", "ring", "stipe", "gills", "volva", "mycelium"],  
+        },
+        // colorscale: "RdYlGn",
+        showscale: true,
+    }],
+    layout_input: {
+      title: "Input Image",
+      images:[{
+        "source": "https://images.plot.ly/language-icons/api-home/r-logo.png",
+        "xref": "x",
+        "yref": "y",
+        "x": 1,
+        "y": 3,
+        "sizex": 2,
+        "sizey": 2,
+        "sizing": "stretch",
+      // "layer": "below"
+      }],
+      xaxis: {
+        visible: false,
+      },
+      yaxis: { 
+        autorange: "reversed",
+        visible: false,
+        scaleanchor: "x",
+      },
+      margin: {
+        l: 0,
+        r: 0,
+        b: 50,
+        t: 50,
+        pad: 0,
+      },
+    },
+    data_mask: [ //predicted mask 
       {
         z: [],
         type: "heatmap",
+        // type: "contour",
         autorange: "reversed",
         colorbar: {
-        title: "Predicitons",
-        tick0: 0,
-        dtick: 2,
-        tickvals: [0, 1, 2, 3,4,5,6], 
-        ticktext:["background", "cap", "ring", "stipe", "gills", "volva", "mycelium"],  
-
+          title: "Class",
+          // font: {
+          //   family: 'Roboto, normal',
+          //   size: 16,
+          //   color: '#7f7f7f'
+          // },
+          tickvals: [0, 1, 2, 3, 4, 5, 6], 
+          ticktext: ["background", "cap", "ring", "stipe", "gills", "volva", "mycelium"],  
         },
+        // colorscale: "RdYlGn",
         showscale: true,
       },
     ],
-    data2: [ // seg-grad-cam
+    data_explanation: [ // seg-grad-cam
       {
         z: [],
         type: "heatmap",
         autorange: "reversed",
+        cmin: 0,
+        cmax: 1,
+        colorbar: {
+          title: "Importance",
+          // tickvals: [0, 1], 
+          // ticktext: ["low", "high"],
+          // orientation: "h" //"v"
+        },
+        // colorscale: [[0.0,"rgb(255,255,255)"],[1.0,"rgb(165,0,38)"]],
+        colorscale: "sequential",
       },
     ], // layout of the heatmaps
-    layout_2: {
-      title: "Predicted mask",
-      yaxis: { autorange: "reversed" },
-      showticklabels: true,
+    layout_mask: {
+      title: "Predicted Mask",
+      xaxis: {
+        visible: false,
+        // fixedrange: true,
+      },
+      yaxis: { 
+        autorange: "reversed",
+        visible: false,
+        scaleanchor: "x",
+        // fixedrange: true,
+      },
       tickmode: "array",
       tickvals: [0, 1, 2, 3, 4, 5],
-      width: 450,
-      height: 450,
+      // width: 450,
+      // height: 450,
       margin: {
-        l: 50,
-        r: 50,
+        l: 0,
+        r: 0,
         b: 50,
         t: 50,
-        pad: 2,
+        pad: 0,
       },
-      paper_bgcolor: "rgba(27, 27, 50, 0.03)",
-      borderRadius: '20px',
+      // paper_bgcolor: "rgba(27, 27, 50, 0.03)",
+      // borderRadius: '20px',
       dragmode: "select",
     },
-    layout_3: {
-      title: "Segmentation-grad-cam",
-      yaxis: { autorange: "reversed" },
-      width: 450,
-      height: 450,
+    layout_explanation: {
+      title: "Pixel Importance",
+      xaxis: {
+        visible: false,
+        // fixedrange: true,
+      },
+      yaxis: { 
+        autorange: "reversed",
+        visible: false,
+        scaleanchor: "x",
+        // fixedrange: true,
+      },
+      // width: 450,
+      // height: 450,
       margin: {
-        l: 50,
-        r: 50,
+        l: 0,
+        r: 0,
         b: 50,
         t: 50,
-        pad: 2,
+        pad: 0,
       },
-      paper_bgcolor: "rgba(27, 27, 50, 0.03)",
-      borderRadius: '20px',
+      // paper_bgcolor: "rgba(27, 27, 50, 0.03)",
+      // borderRadius: '20px',
     },
     imagge: null,
     url: null,
     arrayselected: { x: [], y: [] },
   }),
   computed: {
-    itemss() {
-      return this.items.map((item, index) => {
+    classItemsFn() {
+      return this.classItems.map((item, index) => {
         return {
           text: item,
           value: index,
         };
       });
     },
-    itemss2() {
-      return this.items2.map((item, index) => {
+    layerItemsFn() {
+      return this.layerItems.map((item, index) => {
         return {
           text: item,
           value: index,
@@ -211,49 +302,56 @@ export default {
   },
 
   mounted() {
-    this.$refs.graph.$on("click", (d) => {
-      this.resetValues();
-      this.printval(d);
-    });
+    // this.$refs.graph.$on("click", (d) => {
+    //   this.resetValues();
+    //   this.printval(d);
+    // });
   },
 
   methods: {
     postForm(e) {
-      console.log("hhere", e.target.files[0]);
       this.imagge = e.target.files[0];
-      this.url = URL.createObjectURL(e.target.files[0]);
-      this.plotimg = true;
-      let formData = new FormData();
       this.plot = true;
+      this.upLoading = true;
+      let formData = new FormData();
       formData.append("image", e.target.files[0]);
       axios
         .post("http://localhost:1025/form-example", formData)
         .then((response) => {
-          this.data1[0].z = response.data.data;
-          this.data1[0].z = response.data.data;
-          this.items= response.data.elements
+          this.data_mask[0].z = response.data.data;
+          this.classItems = response.data.elements;
+          this.data_mask[0].colorscale = this.classItemsColorscale();
+          this.url = 'data:image/jpeg;base64,' + response.data.inputImg
+          this.data_mask[0].colorbar.tickvals = Array.from({length: this.classItems.length},(v,k)=>k)
+          this.data_mask[0].colorbar.ticktext = this.classItems
+          // this.layout_mask[0].width = this.$refs.inputImg.clientWidth
+          // this.layout_mask[0].height = this.$refs.inputImg.clientHeight
+          // tickvals: [0, 1, 2, 3, 4, 5, 6], 
+          // ticktext: ["background", "cap", "ring", "stipe", "gills", "volva", "mycelium"],  
+
           this.changeSelect();
           this.getLayers();
           this.plot = true;
+          this.upLoading = false;
+
           this.$refs.graph.$on("click", (d) => {
-          this.resetValues();
-          this.printval(d);
-    });
+            this.resetValues();
+            this.printval(d);
+          });
+        }).finally(() => {
+          this.upLoading = false;
         });
     }, // for chaning the layer 
     getLayers() {
-      console.log("hhere", this.imagge);
-      this.url = URL.createObjectURL(this.imagge);
       let formData = new FormData();
       formData.append("image", this.imagge);
       axios.get("http://localhost:1025/form-example").then((response) => {
-        this.items2 = response.data;
+        this.layerItems = response.data;
       });
     }, // for chaning selection
     changeSelect() {
-      this.plot2 = false;
+      this.plot_explanation = false;
       let self = this;
-      this.url = URL.createObjectURL(this.imagge);
       let formData = new FormData();
       formData.append("image", this.imagge);
       formData.append("item", this.selected);
@@ -264,10 +362,8 @@ export default {
       axios
         .post("http://localhost:1025/change", formData)
         .then((response) => {
-          self.data2[0].z = response.data;
-          console.log("data", self.data);
-          console.log("data", self.data2);
-          this.plot2 = true;
+          self.data_explanation[0].z = response.data;
+          this.plot_explanation = true;
         })
         .finally((res) => {
           console.log(res);
@@ -280,6 +376,8 @@ export default {
       this.$refs.uploader.click();
     },
     printval(e) {
+      if(e == null)
+        return;
       if (e.range) {
         this.arrayselected = e.range;
         this.changeSelect();
@@ -294,6 +392,18 @@ export default {
         console.log(e.points);
       }
     },
+    classItemsColorscale() {
+      const classes_double = this.classItems.reduce(function (res, current) {
+          return res.concat([current, current]);
+      }, []);
+      return classes_double.map((item, index) => {
+        const actual_index = this.classItems.indexOf(item);
+        if(index % 2 === 1){
+          return [(actual_index+1)/this.classItems.length, this.discrete_colorscale[actual_index%this.discrete_colorscale.length]];
+        }
+        return [actual_index/this.classItems.length, this.discrete_colorscale[actual_index%this.discrete_colorscale.length]];
+      })
+    }
   },
   watch: {
 
@@ -303,36 +413,34 @@ export default {
 //styling
 <style scoped>
 .selectLayer {
-  width: 187px;
-  right: 335px;
+  /* width: 187px; */
+  /* right: 335px; */
   border-radius: 4px;
   background: #fffdfd;
   flex: none;
   order: 0;
   flex-grow: 1;
   margin: 0px 0px;
-  
-  }
-  
-.input{
-width:calc(.5*100%);
-height:calc(.5*100%);
-object-fit: contain;
-border: 2px  #726e6e;
-border-radius: 5px;
 }
-v-img {
- max-width: 100%;
- max-height: 100%;
+  
+.inputImg{
+  /* width:calc(.5*100%); */
+  /* height:calc(.5*100%); */
   object-fit: contain;
-
+  border: 2px  #726e6e;
+  /* border-radius: 5px; */
 }
+/* v-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+} */
 .loader{
-width: 450px;
-height: 900px;
+  width: 450px;
+  height: 900px;
 }
 .dropindx{
-  width: 187px;
+  /* width: 187px; */
   background: #fffdfd; 
   border-radius: 4px;
   flex: none;
@@ -342,11 +450,11 @@ height: 900px;
 
 }
 .text{
-font-family: Roboto;
-font-style: normal;
-font-weight: 400;
-font-size: 16px;
-line-height: 24px;
+  font-family: Roboto;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
 }
 
 </style>
